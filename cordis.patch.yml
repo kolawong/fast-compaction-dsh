@@ -2,17 +2,25 @@
 #
 # This package is TWO plugins in one:
 #
-#   - the engine (`main: src/index.ts`), mounted by the agent preset inside
-#     the compaction isolate realm — never loaded by the web profile;
-#   - the settings entry below (`fast-compaction-dsh/web` → web/server.js),
-#     which registers the `fast-compaction` settings namespace on the web
-#     profile's settings provider so the Web settings card (web/client.js)
-#     has a namespace to render and edit.
+#   - the engine (`./engine` → src/index.ts), mounted by the agent preset as a
+#     file URL inside the compaction isolate realm — never loaded by the web
+#     profile;
+#   - the settings entry below, which registers the `fast-compaction` settings
+#     namespace on the web profile's settings provider so the Web settings card
+#     (the package's `./client` export) has a namespace to render and edit.
+#
+# The row is deliberately named by the BARE package name: the client module
+# table locates a bundle's client half through the loader row's specifier and
+# only accepts a package-root specifier (`exactPackageSpecifier` returns
+# undefined for subpaths), so a `pkg/subpath` row would load on the host but
+# never contribute its client bundle. The package therefore points
+# `exports["."]` at web/server.js; the engine stays reachable at `./engine`
+# and by file URL from the agent preset.
 #
 # All effective defaults live in the schema/base layer inside web/server.js,
 # so this entry carries no config.
 - insert:
     - id: fast-compaction
-      name: 'fast-compaction-dsh/web'
+      name: 'fast-compaction-dsh'
       inject:
         - settings

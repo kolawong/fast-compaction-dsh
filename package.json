@@ -25,9 +25,10 @@
   "engines": {
     "node": ">=22.19.0"
   },
-  "main": "src/index.ts",
+  "main": "web/server.js",
   "exports": {
-    ".": "./src/index.ts",
+    ".": "./web/server.js",
+    "./engine": "./src/index.ts",
     "./web": "./web/server.js",
     "./client": "./web/client.js",
     "./src/*": "./src/*",
