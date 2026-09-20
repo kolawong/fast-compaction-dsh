@@ -44,6 +44,8 @@
     "@deepseek-ai/dsh-session": "link:../deepseek-harness/packages/core/session",
     "@deepseek-ai/dsh-compaction": "link:../deepseek-harness/packages/compaction/compaction",
     "@deepseek-ai/dsh-compaction-basic": "link:../deepseek-harness/packages/compaction/compaction-basic",
+    "@deepseek-ai/dsh-settings": "link:../deepseek-harness/packages/settings/settings",
+    "@deepseek-ai/dsh-settings-file": "link:../deepseek-harness/packages/settings/settings-file",
     "@deepseek-ai/dsh-token-meter": "link:../deepseek-harness/packages/llm/token-meter",
     "@types/node": "^22.20.0",
     "typescript": "^5.9.3",

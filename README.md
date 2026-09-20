@@ -86,7 +86,14 @@ No compaction yet? Run `/compact` in a session on the `fast` preset, or lower `t
 
 ## Configuration
 
-All fields are optional and live under the preset row's `config:`. Unlisted fields pass through to `compaction-basic` (`thresholdRatio`, `retainRatio`, `retainTokens`, `summarizationProvider`, `summarizationModel`, `maxTokens`, `compactionRetries`, `maxOverflowRetries`, `modelPolicies`, `auto`).
+All fields are optional and stack in two layers:
+
+1. **The settings.yaml user layer** (the `fast-compaction:` section of `~/.dsh/settings.yaml`) — wins per field and applies **live** to subsequent compactions: the engine watches the settings service's hot-publish and rebuilds the Jev transport in place when `apiKey`/`model`/`baseUrl` change, so no restart is needed. The friendly editor is the companion plugin [`dsh-plugin-fast-compaction`](web-plugin/)'s settings card in the Web GUI (`apiKey` rides as a `secret` role field — only a set/unset flag ever crosses the wire).
+2. **The preset patch `config:`** (composition layer) — the per-preset base values; changes require a DSH restart.
+
+Per-field precedence: settings.yaml user layer > preset `config:` > environment (`apiKey` only, via `TYPESAFE_API_KEY`) > code defaults. Unlisted fields pass through to `compaction-basic` (`thresholdRatio`, `retainRatio`, `retainTokens`, `summarizationProvider`, `summarizationModel`, `maxTokens`, `compactionRetries`, `maxOverflowRetries`, `modelPolicies`, `auto`).
+
+Note: a settings section whose values fail the schema (e.g. a string in `keepThreshold`) disables the whole settings layer and falls back to the composition layer, with a warning in the log; the layer retries on the next process start.
 
 | Field | Default | Meaning |
 | --- | --- | --- |

@@ -24,6 +24,8 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
+import type { SettingsScope } from '@deepseek-ai/dsh-settings'
 import { BasicCompactionEngine } from '@deepseek-ai/dsh-compaction-basic'
 import type { BasicCompactionConfig } from '@deepseek-ai/dsh-compaction-basic'
 import type { SummarizationInput, SummaryResult } from '@deepseek-ai/dsh-compaction-basic/src/summarizer.ts'
@@ -126,6 +128,58 @@ export function resolveFastConfig(config: FastCompactionConfig): ResolvedFastCon
 /** Tokens the request envelope (`model`, key names) adds around state and questions. */
 const REQUEST_OVERHEAD_TOKENS = 20
 
+/** Settings namespace carrying this plugin's user layer in `~/.dsh/settings.yaml`. */
+export const SETTINGS_NAMESPACE = 'fast-compaction'
+
+/**
+ * Schemastery schema of the settings user layer. Every field stays optional:
+ * the layer is sparse, and per-field presence is what overrides the
+ * composition (preset patch) layer beneath it. `apiKey` crosses the wire only
+ * as a set/unset flag thanks to the `secret` role, so a configuration surface
+ * never receives the key itself.
+ */
+export const SettingsSchema: z<FastCompactionConfig> = z.object({
+  disabled: z.boolean(),
+  apiKey: z.string().role('secret'),
+  model: z.string(),
+  baseUrl: z.string(),
+  keepThreshold: z.number(),
+  preserveRecentMessages: z.number(),
+  maxStateTokens: z.number(),
+  maxRequestTokens: z.number(),
+  truncateHeadChars: z.number(),
+  minReduction: z.number(),
+})
+
+/**
+ * The process-wide settings user layer, mirrored by whichever live engine
+ * currently owns the namespace registration. Ownership migrates: the first
+ * engine to find the namespace unowned registers it (the registration rides
+ * that engine's fiber, so disposal releases it), and any later engine
+ * noticing the vacancy re-registers and re-reads the document. Engines keep
+ * the last published layer while the namespace is unowned.
+ */
+let settingsUserLayer: FastCompactionConfig = {}
+let settingsOwned = false
+let settingsBroken = false
+
+/** One listener per live engine, re-resolving its effective config on every published change. */
+const settingsListeners = new Set<() => void>()
+
+/**
+ * Merge a sparse settings layer over composition (preset patch) fields;
+ * `undefined` never overrides, so a field absent from the user layer keeps
+ * whatever the composition — or, for `apiKey`, the `TYPESAFE_API_KEY`
+ * environment fallback inside {@link resolveFastConfig} — says.
+ */
+export function mergeFastConfig(base: FastCompactionConfig, layer: FastCompactionConfig): FastCompactionConfig {
+  const merged: Record<string, unknown> = { ...base }
+  for (const [key, value] of Object.entries(layer)) {
+    if (value !== undefined) merged[key] = value
+  }
+  return merged as FastCompactionConfig
+}
+
 /**
  * Split the candidate calls into batches whose questions, together with the
  * (always complete) state, fit one request, ported from fast-jev's
@@ -175,9 +229,15 @@ export function batchCalls(
  * {@link resolveFastConfig} resolves their defaults in the constructor.
  */
 export class FastCompactionEngine extends BasicCompactionEngine {
-  /** The resolved fast layer configuration. */
-  public readonly fast: ResolvedFastConfig
-  private readonly asker: JevAsker
+  /**
+   * The resolved fast layer configuration: composition (preset patch) fields
+   * overlaid by the `fast-compaction` settings.yaml user layer, re-resolved
+   * live whenever that layer changes.
+   */
+  public fast: ResolvedFastConfig
+  private asker: JevAsker
+  /** The composition-provided fast fields, kept apart so the settings layer can re-overlay them. */
+  private readonly baseFast: FastCompactionConfig
 
   constructor(ctx: Context, config: FastCompactionConfig & BasicCompactionConfig = {}) {
     const fast: FastCompactionConfig = {}
@@ -187,8 +247,64 @@ export class FastCompactionEngine extends BasicCompactionEngine {
       else basic[key] = value
     }
     super(ctx, basic as BasicCompactionConfig)
-    this.fast = resolveFastConfig(fast)
+    this.baseFast = fast
+    this.fast = resolveFastConfig(mergeFastConfig(fast, settingsUserLayer))
     this.asker = this.createJevAsker()
+    const sync = () => this.syncFromSettings()
+    settingsListeners.add(sync)
+    ctx.effect(() => () => {
+      settingsListeners.delete(sync)
+    }, 'fast-compaction: settings listener')
+    ctx.inject(['settings'], (sctx) => {
+      this.ensureSettingsRegistration(sctx)
+    })
+  }
+
+  /**
+   * Register the settings namespace while no live engine owns it, then mirror
+   * the user layer into the process-wide slot every engine merges over its
+   * composition fields. A sibling's prior registration is not an error (it
+   * keeps the layer fresh for everyone); a stored section the schema rejects
+   * disables the layer until the process restarts, falling every engine back
+   * to its composition configuration.
+   */
+  private ensureSettingsRegistration(ctx: Context): void {
+    if (settingsOwned || settingsBroken) return
+    if (ctx.get('settings') === undefined) return
+    let scope: SettingsScope<FastCompactionConfig>
+    try {
+      scope = ctx.settings.register(SETTINGS_NAMESPACE, SettingsSchema, { applies: 'live' })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('already registered')) {
+        settingsOwned = true
+        return
+      }
+      settingsBroken = true
+      ctx.logger.warn(`fast-compaction-dsh: settings layer disabled (${message})`)
+      return
+    }
+    settingsOwned = true
+    const publish = () => {
+      settingsUserLayer = scope.get()
+      for (const listener of [...settingsListeners]) listener()
+    }
+    publish()
+    scope.watch(() => {
+      publish()
+    })
+    ctx.effect(() => () => {
+      settingsOwned = false
+    }, 'fast-compaction: settings ownership')
+  }
+
+  /** Re-resolve the effective config from the composition layer plus the shared settings layer. */
+  private syncFromSettings(): void {
+    const next = resolveFastConfig(mergeFastConfig(this.baseFast, settingsUserLayer))
+    const transportChanged =
+      next.apiKey !== this.fast.apiKey || next.model !== this.fast.model || next.baseUrl !== this.fast.baseUrl
+    this.fast = next
+    if (transportChanged) this.asker = this.createJevAsker()
   }
 
   /** Build the Jev transport; subclasses may inject a test double. */
@@ -242,6 +358,10 @@ export class FastCompactionEngine extends BasicCompactionEngine {
     input: SummarizationInput,
     signal?: AbortSignal,
   ): Promise<SummaryResult | null> {
+    // Ownership self-heal: if no live engine holds the namespace (the previous
+    // owner's session ended, or the settings service arrived late), this
+    // compaction re-registers and re-reads the document first.
+    this.ensureSettingsRegistration(this.ctx)
     if (this.fast.apiKey.length === 0) {
       this.ctx.logger.warn(
         'fast-compaction-dsh: TYPESAFE_API_KEY is not configured; the verdict pass is skipped',

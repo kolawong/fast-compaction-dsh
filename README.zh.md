@@ -86,7 +86,14 @@ shipped `standard` agent preset 把 `compaction-basic` 装在带 isolate realm �
 
 ## 配置
 
-全部可选，写在 preset 行 `config:` 下。未列字段透传给 `compaction-basic`（`thresholdRatio`、`retainRatio`、`retainTokens`、`summarizationProvider`、`summarizationModel`、`maxTokens`、`compactionRetries`、`maxOverflowRetries`、`modelPolicies`、`auto`）。
+全部可选。有两层，叠加生效：
+
+1. **settings.yaml 用户层**（`~/.dsh/settings.yaml` 的 `fast-compaction:` 段）——逐字段优先，**改动即时生效**于后续压缩（引擎监听 settings 服务的热发布，apiKey/model/baseUrl 变化会就地重建 Jev 传输），无需重启。推荐用伴随插件 [`dsh-plugin-fast-compaction`](web-plugin/) 的设置卡片在 Web GUI 里编辑（apiKey 以 secret 形式存储，永不上线传输原文）。
+2. **preset patch 的 `config:`**（组合层）——per-preset 的基础值，改动需重启 DSH。
+
+单字段优先级：settings.yaml 用户层 > preset `config:` > 环境变量（仅 `apiKey` 走 `TYPESAFE_API_KEY`）> 代码默认值。未列字段透传给 `compaction-basic`（`thresholdRatio`、`retainRatio`、`retainTokens`、`summarizationProvider`、`summarizationModel`、`maxTokens`、`compactionRetries`、`maxOverflowRetries`、`modelPolicies`、`auto`）。
+
+注意：settings 段的字段值非法（如把 `keepThreshold` 写成字符串）时，整个 settings 层会被禁用并回落到组合层（日志有告警），进程重启后重试。
 
 | 字段 | 默认 | 说明 |
 | --- | --- | --- |

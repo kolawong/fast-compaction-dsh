@@ -26,6 +26,12 @@ importers:
       '@deepseek-ai/dsh-session':
         specifier: link:../deepseek-harness/packages/core/session
         version: link:../deepseek-harness/packages/core/session
+      '@deepseek-ai/dsh-settings':
+        specifier: link:../deepseek-harness/packages/settings/settings
+        version: link:../deepseek-harness/packages/settings/settings
+      '@deepseek-ai/dsh-settings-file':
+        specifier: link:../deepseek-harness/packages/settings/settings-file
+        version: link:../deepseek-harness/packages/settings/settings-file
       '@deepseek-ai/dsh-token-meter':
         specifier: link:../deepseek-harness/packages/llm/token-meter
         version: link:../deepseek-harness/packages/llm/token-meter
