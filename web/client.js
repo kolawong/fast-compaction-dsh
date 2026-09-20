@@ -24,7 +24,7 @@
  */
 
 window.__ModuleLoader__.load({
-  id: "fast-compaction-dsh-web",
+  id: "fast-compaction-dsh",
   factory: (require) => {
     const exports = {};
     const React = require("react");
