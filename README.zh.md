@@ -58,6 +58,26 @@ shipped `standard` agent preset 把 `compaction-basic` 装在带 isolate realm �
 
 重启 DSH。新会话的压缩即走 `jev-latest`；日志里看到 `fast-compaction-dsh: kept N/M calls verbatim (…)` 即生效。
 
+## 查看实际压缩效果
+
+不用碰命令行——GUI 里就有两层，外加两个可选渠道：
+
+1. **聊天流标记**：压缩发生后聊天流里出现可展开的标记行（`N 项 · M tokens`），展开即可看到模型当前实际看到的逐字 transcript，被截断的工具结果带 `[fast-compaction-dsh truncated …]` 标记。
+2. **轨迹页（裁决明细在这里）**：会话视图切到 **轨迹** 标签 → 找到 `Compaction` 组 → 点击压缩单元格，右侧检查器有两个标签：
+   - **概述**：重建后的 transcript（模型现在看到的上下文），Markdown 渲染；
+   - **原始输出**：第 1 块是本插件生成的**可读裁决报告**（汇总统计 + 每条 tool call 的 `keepCall`/`keepResult` 概率和最终动作的对齐表格），第 2 块是原始 `{decisions, stats, stateStage}` JSON。
+3. **检查脚本**（离线、只读，跨会话批量看时方便）：
+
+   ```sh
+   pnpm run inspect:compaction          # 当前目录的会话
+   pnpm run inspect:compaction -- --all # 全部工作区
+   ```
+
+   渲染每次压缩的汇总和逐条裁决表（从 `compaction/summary` 事件的 `rawOutput` 里解析 JSON 块）。`--json` 输出机器可读结果。
+4. **服务日志**：`journalctl -u deepseek-harness.service | grep fast-compaction`——每次裁决一行摘要，fallback 时也有告警。
+
+还没触发过压缩？在 `fast` 预设的会话里发 `/compact`，或把 preset 配置里的 `thresholdRatio` 调低。
+
 ## 环境要求
 
 - Node.js ≥ 22.19（插件是 TypeScript 源码，由 DSH loader 直接经 type stripping 加载）。

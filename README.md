@@ -58,6 +58,26 @@ Then point your default preset at it in `~/.dsh/cordis.patch.yml`:
 
 Restart DSH. New sessions compact through `jev-latest`; watch the log for `fast-compaction-dsh: kept N/M calls verbatim (…)`.
 
+## Seeing the effect
+
+No command line needed — the GUI has two layers, plus two optional channels:
+
+1. **Chat marker**: after a compaction, the chat shows an expandable marker (`N items · M tokens`); expanding it shows the verbatim transcript the model now sees, with `[fast-compaction-dsh truncated …]` notes where results were cut.
+2. **Trajectory tab (the verdict details live here)**: switch the session view to the **Trajectory** tab → find the `Compaction` group → click the compacted cell. The inspector has two tabs:
+   - **Summary**: the rebuilt transcript (the context the model now sees), rendered as Markdown;
+   - **Raw Output**: block 1 is a **readable verdict report** this plugin emits (stats header + an aligned table of each tool call's `keepCall`/`keepResult` probabilities and final action), block 2 is the raw `{decisions, stats, stateStage}` JSON.
+3. **Inspector script** (offline, read-only — handy for a cross-session overview):
+
+   ```sh
+   pnpm run inspect:compaction          # sessions for the current directory
+   pnpm run inspect:compaction -- --all # every workspace
+   ```
+
+   Renders each compaction's stats and per-call verdict table (parsed from the JSON block of the `compaction/summary` event's `rawOutput`). `--json` for machine-readable output.
+4. **Service log**: `journalctl -u deepseek-harness.service | grep fast-compaction` — one summary line per verdict pass, plus fallback warnings.
+
+No compaction yet? Run `/compact` in a session on the `fast` preset, or lower `thresholdRatio` in the preset config.
+
 ## Requirements
 
 - Node.js ≥ 22.19 (the plugin is TypeScript loaded directly by DSH's loader via type stripping).
