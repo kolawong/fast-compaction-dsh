@@ -58,6 +58,16 @@ shipped `standard` agent preset 把 `compaction-basic` 装在带 isolate realm �
 
 重启 DSH。新会话的压缩即走 `jev-latest`；日志里看到 `fast-compaction-dsh: kept N/M calls verbatim (…)` 即生效。
 
+同一个包还自带这台引擎的 **Web 设置卡片**（[`web/`](web/) 下的 `fast-compaction-dsh/web` 与 `fast-compaction-dsh/client` 入口）。要拿到卡片，把包加进 web profile 并启用 bundle，然后重启：
+
+```jsonc
+// ~/.dsh/profiles/web/package.json
+"dependencies": { "fast-compaction-dsh": "link:/path/to/fast-compaction-dsh" },
+"dsh": { "profile": { "bundles": [ ..., "fast-compaction-dsh" ] } }
+```
+
+bundle patch 只在 web profile 里挂载"设置命名空间注册"这一个入口；引擎照旧由上面的 agent 预设挂载，web profile 永远不会加载 `src/index.ts`。
+
 ## 查看实际压缩效果
 
 不用碰命令行——GUI 里就有两层，外加两个可选渠道：
@@ -88,7 +98,7 @@ shipped `standard` agent preset 把 `compaction-basic` 装在带 isolate realm �
 
 全部可选。有两层，叠加生效：
 
-1. **settings.yaml 用户层**（`~/.dsh/settings.yaml` 的 `fast-compaction:` 段）——逐字段优先，**改动即时生效**于后续压缩（引擎监听 settings 服务的热发布，apiKey/model/baseUrl 变化会就地重建 Jev 传输），无需重启。推荐用伴随插件 [`dsh-plugin-fast-compaction`](web-plugin/) 的设置卡片在 Web GUI 里编辑（apiKey 以 secret 形式存储，永不上线传输原文）。
+1. **settings.yaml 用户层**（`~/.dsh/settings.yaml` 的 `fast-compaction:` 段）——逐字段优先，**改动即时生效**于后续压缩（引擎监听 settings 服务的热发布，apiKey/model/baseUrl 变化会就地重建 Jev 传输），无需重启。推荐用本包自带的 Web 设置卡片（[`web/`](web/)，即 `fast-compaction-dsh/client` 入口）在插件的 Configure 页编辑（apiKey 以 secret 形式存储，永不上线传输原文）。
 2. **preset patch 的 `config:`**（组合层）——per-preset 的基础值，改动需重启 DSH。
 
 单字段优先级：settings.yaml 用户层 > preset `config:` > 环境变量（仅 `apiKey` 走 `TYPESAFE_API_KEY`）> 代码默认值。未列字段透传给 `compaction-basic`（`thresholdRatio`、`retainRatio`、`retainTokens`、`summarizationProvider`、`summarizationModel`、`maxTokens`、`compactionRetries`、`maxOverflowRetries`、`modelPolicies`、`auto`）。

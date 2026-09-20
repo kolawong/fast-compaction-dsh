@@ -1,13 +1,14 @@
 /**
- * dsh-plugin-fast-compaction — Server half (web profile).
+ * fast-compaction-dsh — Web-profile entry (the package's `./web` export).
  *
  * Owns exactly one job: registering the `fast-compaction` settings namespace
  * with the deployment's settings provider (`@deepseek-ai/dsh-settings-file`
  * on ~/.dsh/settings.yaml), so that
  *
- *   1. the agent-side fast-compaction-dsh engine gets a validated, layered
- *      section (schema defaults → this plugin's base layer → user layer), and
- *   2. the Web settings card (client.js) has a namespace to render and edit.
+ *   1. the agent-side engine half of this same package (src/index.ts) gets a
+ *      validated, layered section (schema defaults → this entry's base layer
+ *      → user layer), and
+ *   2. the Web settings card (web/client.js) has a namespace to render and edit.
  *
  * The registration is deliberately defensive: when no settings provider is
  * mounted, `ctx.inject` parks the callback instead of failing the plugin, and

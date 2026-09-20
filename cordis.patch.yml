@@ -1,0 +1,18 @@
+# DeepSeek Harness — fast-compaction-dsh bundle patch (web profile)
+#
+# This package is TWO plugins in one:
+#
+#   - the engine (`main: src/index.ts`), mounted by the agent preset inside
+#     the compaction isolate realm — never loaded by the web profile;
+#   - the settings entry below (`fast-compaction-dsh/web` → web/server.js),
+#     which registers the `fast-compaction` settings namespace on the web
+#     profile's settings provider so the Web settings card (web/client.js)
+#     has a namespace to render and edit.
+#
+# All effective defaults live in the schema/base layer inside web/server.js,
+# so this entry carries no config.
+- insert:
+    - id: fast-compaction
+      name: 'fast-compaction-dsh/web'
+      inject:
+        - settings

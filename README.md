@@ -58,6 +58,16 @@ Then point your default preset at it in `~/.dsh/cordis.patch.yml`:
 
 Restart DSH. New sessions compact through `jev-latest`; watch the log for `fast-compaction-dsh: kept N/M calls verbatim (…)`.
 
+The same package also ships the **Web settings card** for that engine (the `fast-compaction-dsh/web` and `fast-compaction-dsh/client` entries under [`web/`](web/)). To get the card, add the package to the web profile and enable the bundle, then restart:
+
+```jsonc
+// ~/.dsh/profiles/web/package.json
+"dependencies": { "fast-compaction-dsh": "link:/path/to/fast-compaction-dsh" },
+"dsh": { "profile": { "bundles": [ ..., "fast-compaction-dsh" ] } }
+```
+
+The bundle patch only mounts the settings-namespace entry in the web profile; the engine keeps being mounted by the agent preset above, and the web profile never loads `src/index.ts`.
+
 ## Seeing the effect
 
 No command line needed — the GUI has two layers, plus two optional channels:
@@ -88,7 +98,7 @@ No compaction yet? Run `/compact` in a session on the `fast` preset, or lower `t
 
 All fields are optional and stack in two layers:
 
-1. **The settings.yaml user layer** (the `fast-compaction:` section of `~/.dsh/settings.yaml`) — wins per field and applies **live** to subsequent compactions: the engine watches the settings service's hot-publish and rebuilds the Jev transport in place when `apiKey`/`model`/`baseUrl` change, so no restart is needed. The friendly editor is the companion plugin [`dsh-plugin-fast-compaction`](web-plugin/)'s settings card in the Web GUI (`apiKey` rides as a `secret` role field — only a set/unset flag ever crosses the wire).
+1. **The settings.yaml user layer** (the `fast-compaction:` section of `~/.dsh/settings.yaml`) — wins per field and applies **live** to subsequent compactions: the engine watches the settings service's hot-publish and rebuilds the Jev transport in place when `apiKey`/`model`/`baseUrl` change, so no restart is needed. The friendly editor is this package's own Web settings card ([`web/`](web/), the `fast-compaction-dsh/client` entry) on the Plugins page (`apiKey` rides as a `secret` role field — only a set/unset flag ever crosses the wire).
 2. **The preset patch `config:`** (composition layer) — the per-preset base values; changes require a DSH restart.
 
 Per-field precedence: settings.yaml user layer > preset `config:` > environment (`apiKey` only, via `TYPESAFE_API_KEY`) > code defaults. Unlisted fields pass through to `compaction-basic` (`thresholdRatio`, `retainRatio`, `retainTokens`, `summarizationProvider`, `summarizationModel`, `maxTokens`, `compactionRetries`, `maxOverflowRetries`, `modelPolicies`, `auto`).

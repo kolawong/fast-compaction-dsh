@@ -1,5 +1,6 @@
 /**
- * dsh-plugin-fast-compaction — Client half (Web settings card).
+ * fast-compaction-dsh — Client half (Web settings card), served as the
+ * package's `./client` export.
  *
  * One configuration card for the `fast-compaction` settings namespace,
  * registered into the Plugins page slots a bundle configuration belongs to
@@ -23,7 +24,7 @@
  */
 
 window.__ModuleLoader__.load({
-  id: "dsh-plugin-fast-compaction",
+  id: "fast-compaction-dsh-web",
   factory: (require) => {
     const exports = {};
     const React = require("react");
@@ -35,7 +36,7 @@ window.__ModuleLoader__.load({
     /** Locale dictionary namespace (slot `locale` option binds `t` to it). */
     const NS = "settings.plugin.fast-compaction";
     /** This bundle's package name: the `plugins.bundle.config` key. */
-    const PKG = "dsh-plugin-fast-compaction";
+    const PKG = "fast-compaction-dsh";
     /** This bundle's row id in cordis.patch.yml: the `plugins.row.config` key. */
     const ROW = "fast-compaction";
 
