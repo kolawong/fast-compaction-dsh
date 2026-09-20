@@ -37,6 +37,7 @@ import type { ToolCallRef } from './pairing.ts'
 import { fitState, hasSystemHead, isPinned } from './state.ts'
 import { applyToTranscript, decideCall, reductionRatio } from './rebuild.ts'
 import type { CallDecision } from './rebuild.ts'
+import { formatDecisionReport } from './report.ts'
 
 export { JevClient, SYSTEM_ONE_URL, DEFAULT_MODEL, buildJevRequest, parseJevResponse, noulAnswer, questionsFor } from './jev.ts'
 export type { JevAsker, JevClientOptions, JevQuestions, JevRequest, JevResponse, JevState, NoulAnswer, NoulQuestion } from './jev.ts'
@@ -46,6 +47,8 @@ export { fitState, goalFromMessages, isPinned, STATE_CONTEXT } from './state.ts'
 export type { CompactionState, FittedState, HistoryEntry, HistoryToolCall, StateOptions } from './state.ts'
 export { applyToTranscript, decideCall, messageChars, reductionRatio } from './rebuild.ts'
 export type { CallAction, CallDecision, RebuildOptions, RebuildResult } from './rebuild.ts'
+export { formatDecisionReport } from './report.ts'
+export type { ReportContext } from './report.ts'
 export { estimateTokens, truncateText } from './estimate.ts'
 
 /** Plugin configuration: the fast-jev layer on top of `BasicCompactionConfig`. */
@@ -292,10 +295,22 @@ export class FastCompactionEngine extends BasicCompactionEngine {
       + `(${fitted.stage}), ${batches.length} Jev request${batches.length === 1 ? '' : 's'}`,
     )
 
-    const rawOutput: ContentBlock[] = [{
-      type: 'text',
-      text: JSON.stringify({ decisions, stats, stateStage: fitted.stage }, null, 2),
-    }]
+    // Block 1 is a readable table for the GUI Trajectory view's Raw Output
+    // tab; block 2 stays the machine-readable payload for tooling.
+    const rawOutput: ContentBlock[] = [
+      {
+        type: 'text',
+        text: formatDecisionReport(decisions, stats, {
+          stateStage: fitted.stage,
+          stateTokens: fitted.tokens,
+          model: this.fast.model,
+        }),
+      },
+      {
+        type: 'text',
+        text: JSON.stringify({ decisions, stats, stateStage: fitted.stage }, null, 2),
+      },
+    ]
     const usage: TokenUsage | undefined = inputTokens + outputTokens > 0
       ? { inputTokens: inputTokens, outputTokens: outputTokens }
       : undefined

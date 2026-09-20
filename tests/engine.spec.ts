@@ -142,11 +142,21 @@ describe('FastCompactionEngine.summarize', () => {
     expect(text).toContain('<user>Thanks, that is all I needed.</user>')
     expect(text).not.toContain('x'.repeat(100))
     expect(text).not.toContain('pnpm build')
-    // The raw output records the decisions for the durable log.
-    const raw = JSON.parse((summary.rawOutput?.[0] as { text: string }).text) as {
-      decisions: Array<{ action: string; reason: string }>
-    }
-    expect(raw.decisions.every(decision => decision.action === 'drop_call')).toBe(true)
+    // The raw output records the decisions for the durable log: a readable
+    // report block for the GUI Raw Output tab, then the machine-readable JSON.
+    const blocks = (summary.rawOutput ?? []) as Array<{ type: string; text: string }>
+    expect(blocks[0]?.text).toContain('fast-compaction-dsh verdict report')
+    expect(blocks[0]?.text).toContain('drop call')
+    const raw = blocks
+      .map(block => {
+        try {
+          return JSON.parse(block.text) as { decisions?: Array<{ action: string; reason: string }> }
+        } catch {
+          return undefined
+        }
+      })
+      .find(parsed => Array.isArray(parsed?.decisions))
+    expect(raw?.decisions?.every(decision => decision.action === 'drop_call')).toBe(true)
   })
 
   it('keeps scored calls verbatim while dropping stale ones', async () => {
