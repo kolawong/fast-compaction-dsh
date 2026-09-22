@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "fast-compaction-dsh",
+    "description": "Verdict-based compaction engine for DeepSeek Harness: replaces the lossy compaction summary with fast per-call keep/truncate/drop decisions, keeping everything else verbatim (port of tamaratran/fast-jev-compaction)."
+  }
+}

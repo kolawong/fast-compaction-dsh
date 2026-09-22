@@ -32,7 +32,8 @@
     "./web": "./web/server.js",
     "./client": "./web/client.js",
     "./src/*": "./src/*",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "dsh": {
     "bundle": {
