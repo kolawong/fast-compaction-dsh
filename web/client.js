@@ -550,15 +550,22 @@ window.__ModuleLoader__.load({
       }
     }
 
-    exports.inject = ["locale", "slots", "settingsScope"];
+    exports.inject = ["locale", "slots"];
     exports.apply = function apply(ctx) {
       ctx.locale.register(NS, { zh: dicts.zh, en: dicts.en });
 
+      const configForms = ctx.get ? ctx.get("configForms") : ctx.configForms;
+      const settingsScope = ctx.get ? ctx.get("settingsScope") : ctx.settingsScope;
       let scope;
       let describeFace;
       try {
-        scope = ctx.settingsScope.bind({ namespace: SETTINGS_NS });
-        describeFace = ctx.settingsScope.describe();
+        if (configForms?.get) {
+          scope = configForms.get(SETTINGS_NS);
+          describeFace = configForms.describe();
+        } else if (settingsScope?.bind) {
+          scope = settingsScope.bind({ namespace: SETTINGS_NS });
+          describeFace = settingsScope.describe();
+        }
       } catch (error) {
         scope = undefined;
         describeFace = undefined;
