@@ -31,6 +31,23 @@ window.__ModuleLoader__.load({
     const { useState } = React;
     const { jsx, jsxs } = require("react/jsx-runtime");
 
+    // UI primitives icon backward compatibility polyfill
+    try {
+      const primitives = require("@deepseek-ai/dsh-client-ui-primitives");
+      if (primitives && typeof primitives === "object") {
+        for (const key of Object.keys(primitives)) {
+          if (key.startsWith("Icon") && key.endsWith("Regular")) {
+            const base = key.slice(0, -7);
+            for (const suffix of ["12", "14", "16", "18", "20", "24", ""]) {
+              if (!primitives[base + suffix]) {
+                primitives[base + suffix] = primitives[key];
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
     /** Settings namespace owned by the server half. */
     const SETTINGS_NS = "fast-compaction";
     /** Locale dictionary namespace (slot `locale` option binds `t` to it). */
@@ -550,7 +567,7 @@ window.__ModuleLoader__.load({
       }
     }
 
-    exports.inject = ["locale", "slots"];
+    exports.inject = ["locale", "slots", "configForms"];
     exports.apply = function apply(ctx) {
       ctx.locale.register(NS, { zh: dicts.zh, en: dicts.en });
 

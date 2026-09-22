@@ -73,6 +73,7 @@ export const Config = Schema.object({
   /** Below this reduction ratio the verdict pass falls back to the built-in summary. */
   minReduction: Schema.number().min(0).max(1).default(DEFAULTS.minReduction),
 });
+Config.meta.volatile = true;
 
 /**
  * The composition `base` layer. apiKey joins the layer only when the
@@ -100,7 +101,9 @@ export function apply(ctx) {
   const logger = ctx.logger;
   ctx.inject(["settings"], (inner) => {
     try {
-      inner.settings.register(NS, Config, { base: baseLayer(), applies: "live" });
+      if (typeof inner.settings?.register === "function") {
+        inner.settings.register(NS, Config, { base: baseLayer(), applies: "live" });
+      }
     } catch (error) {
       logger?.warn?.("[fast-compaction] settings namespace registration failed; continuing without it:", error);
     }

@@ -51,7 +51,9 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "inspect:compaction": "node scripts/inspect-compaction.mjs"
+    "inspect:compaction": "node scripts/inspect-compaction.mjs",
+    "build": "node -c web/server.js && node -c web/client.js",
+    "prepare": "node -c web/server.js && node -c web/client.js"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "link:../deepseek-harness/vendor/cordis",
