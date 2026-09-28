@@ -70,5 +70,6 @@
     "@types/node": "^22.20.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.9"
-  }
+  },
+  "icon": "./icon.svg"
 }
