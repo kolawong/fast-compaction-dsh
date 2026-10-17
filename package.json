@@ -56,6 +56,22 @@
     "build": "node -c web/server.js && node -c web/client.js",
     "prepare": "node -c web/server.js && node -c web/client.js"
   },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.0",
+    "@deepseek-ai/schemastery": ">=3.18.0",
+    "@deepseek-ai/dsh-agent": ">=0.2.0",
+    "@deepseek-ai/dsh-compaction-basic": ">=0.2.0",
+    "@deepseek-ai/dsh-llm": ">=0.2.0",
+    "@deepseek-ai/dsh-settings": ">=0.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": { "optional": true },
+    "@deepseek-ai/schemastery": { "optional": true },
+    "@deepseek-ai/dsh-agent": { "optional": true },
+    "@deepseek-ai/dsh-compaction-basic": { "optional": true },
+    "@deepseek-ai/dsh-llm": { "optional": true },
+    "@deepseek-ai/dsh-settings": { "optional": true }
+  },
   "devDependencies": {
     "@deepseek-ai/cordis": "link:../deepseek-harness/vendor/cordis",
     "@deepseek-ai/schemastery": "link:../deepseek-harness/vendor/schemastery",
